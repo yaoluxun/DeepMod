@@ -54,7 +54,3 @@ raw_base = 'Raw'
 reads_base = "Reads"
 signal_base = "Signal"
 basecall_fastq_base = "Fastq"
-
-
-
-

@@ -36,7 +36,6 @@ fast5_events = myCom.basecall_events_base #
 fast5_rawReads = ''.join(['/', myCom.raw_base, '/', myCom.reads_base]) #
 fast5_basecall_fq = myCom.basecall_fastq_base #
 fast5_signal = myCom.signal_base #
-
 pre_base_str = 'rnn.pred.ind'
 
 #
@@ -293,6 +292,18 @@ def getRawInfo(moptions, sp_param):
    except:
       raiseError(("No Raw_reads/Signal data %s" % (fast5_rawReads)), sp_param, "No Raw_reads/Signal")
 
+def getRawInfo_multi(moptions, sp_param):
+   if not sp_param['f5status']=="": return;
+
+   try:
+      # get attribute of raw signals
+      #for raw_data in sp_param['f5reader'][''.join([sp_param['id'], '/', 'Signal'])].values(): pass;
+      #sp_param['raw_attributes'] = dict(raw_data.attrs.items())
+
+      sp_param['raw_signals'] = sp_param['f5reader'][''.join('/', [sp_param['read_id'], '/Raw/Signal'])][()]
+   except:
+      raiseError(("No Raw_reads/Signal data %s" % (fast5_rawReads)), sp_param, "No Raw_reads/Signal")
+
 #
 # get channel_info, AlbacoreVersion, read_id, Raw Signals, Event from a fast5 file
 #
@@ -339,10 +350,90 @@ def getFast5Info(moptions, sp_param):
          sp_param['m_event']['mean'][i] = round(np.mean(sp_param['raw_signals'][sp_param['m_event']['start'][i]:sp_param['m_event']['start'][i]+sp_param['m_event']['length'][i]]), 3)
          sp_param['m_event']['stdv'][i] = round(np.std(sp_param['raw_signals'][sp_param['m_event']['start'][i]:sp_param['m_event']['start'][i]+sp_param['m_event']['length'][i]]), 3)
 
+def getFast5Info_multi(moptions, sp_param):
+   '''
+   Get Multi fast5 file information
+   '''
+   # get channel info
+   get_channel_info(moptions, sp_param)
+   if "channel_info" not in sp_param:
+      raiseError(("Channel information could not be found in %s " % fast5_channel_id), sp_param, "Channel information could not be found")
+      return;
+   # get albacore version
+   getAlbacoreVersion(moptions, sp_param)
+   if 'used_albacore_version' not in sp_param:
+      return
+
+   try:
+      # get fastq attribute
+      fq_path = ''.join('/', [sp_param['read_id'], '/', fast5_analysis,'/',moptions['basecall_1d'],'/',moptions['basecall_2strand'],'/',fast5_basecall_fq])
+      fq_data = sp_param['f5reader'][fq_path][()]
+   except:
+      raiseError('No Fastq data', sp_param, "No Fastq data")
+   if sp_param['f5status']=="":
+      fq_data = (fq_data.decode(encoding="utf-8")).split('\n')
+      #sp_param['read_id'] = (fq_data[0][1:] if fq_data[0][0]=='@' else fq_data[0]).replace(" ", ":::").replace("\t", "|||")
+      sp_param['fq_seq'] = fq_data[1];
+   # get raw signals
+   getRawInfo_multi(moptions, sp_param)
+   # get events
+   if sp_param['f5status']=="":
+       getEvent(moptions, sp_param)
+   # normalize signals.
+   if sp_param['f5status']=="":
+       mnormalized(moptions, sp_param)
+
+   if sp_param['f5status']=="":
+      # get mean, std for each event
+      for i in range(len(sp_param['m_event'])):
+         if (len(sp_param['raw_signals'][sp_param['m_event']['start'][i]:sp_param['m_event']['start'][i]+sp_param['m_event']['length'][i]])==0):
+            print ('Signal out of range {}: {}-{} {};{} for {}'.format(i, sp_param['m_event']['start'][i], sp_param['m_event']['length'][i], len(sp_param['m_event']), len(sp_param['raw_signals']), sp_param['mfile_path']))
+            if i>500:
+                sp_param['m_event'] = sp_param['m_event'][:i-1]
+            else:
+                sp_param['f5status']=="Less event"
+            break;
+         sp_param['m_event']['mean'][i] = round(np.mean(sp_param['raw_signals'][sp_param['m_event']['start'][i]:sp_param['m_event']['start'][i]+sp_param['m_event']['length'][i]]), 3)
+         sp_param['m_event']['stdv'][i] = round(np.std(sp_param['raw_signals'][sp_param['m_event']['start'][i]:sp_param['m_event']['start'][i]+sp_param['m_event']['length'][i]]), 3)
+
+
+def is_multi_fast5(moptions, sp_options, f5files):
+   """
+   Whether the fast5 file is multi-fast5_move
+   """
+
+
+    if moptions['multi']:
+        try:
+            return get_Event_Signals_multi(moptions, sp_options, f5files)
+        except:
+            pass
+        try:
+            moptions['multi'] = False
+            return get_Event_Signals(moptions, sp_options, f5files)
+        except:
+            sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
+
+    else: #single-fast5 format is specified
+        try:
+            return get_Event_Signals(moptions, sp_options, f5files)
+        except:
+            pass
+
+        try:
+            moptions['multi'] = True
+            return get_Event_Signals_multi(moptions, sp_options, f5files)
+        except:
+            sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
+
+
 #
 # associate signals for each event in a fast5 file
 #
-def get_Event_Signals(moptions, sp_options, f5files):
+def get_Event_Signals_multi(moptions, sp_options, f5files):
+   """
+   Handle multi-fast5 format
+   """
    if moptions['outLevel']<=myCom.OUTPUT_DEBUG:
       start_time = time.time(); runnum = 0;
 
@@ -357,6 +448,52 @@ def get_Event_Signals(moptions, sp_options, f5files):
             sp_param['mfile_path'] = f5f
             sp_param['f5reader'] = mf5
             sp_param['f5status'] = "";
+            for id in list(sp_param['f5reader'].keys()):
+                sp_param['read_id'] = id
+                getFast5Info_multi(moptions, sp_param)
+
+                if 'get_albacore_version' in sp_param:
+                   sp_options["get_albacore_version"][str(sp_param['get_albacore_version'])] += 1
+                if sp_param['f5status'] == "":
+                   if sp_param['read_id'] in f5data:
+                      print ('Duplicate id', sp_param['read_id'], f5f)
+                   f5data[sp_param['read_id']] = (sp_param['m_event_basecall'], sp_param['m_event'], sp_param['raw_signals'], f5f, sp_param['left_right_skip'])
+                else:
+                   sp_options["Error"][sp_param['f5status']].append(f5f)
+                # for outputing progress
+                if moptions['outLevel']<=myCom.OUTPUT_DEBUG:
+                   runnum += 1;
+
+                   if runnum%500==0:
+                      end_time = time.time();
+                      print ("%d consuming time %d" % (runnum, end_time-start_time))
+          except:
+             sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
+             print("Cannot open fast5 or other errors: {}".format(f5f))
+       if moptions['outLevel']<=myCom.OUTPUT_DEBUG:
+          end_time = time.time();
+          print ("All consuming time %d" % (end_time-start_time))
+
+   return f5data;
+
+
+def get_Event_Signals(moptions, sp_options, f5files):
+
+   if moptions['outLevel']<=myCom.OUTPUT_DEBUG:
+      st1art_time = time.time(); runnum = 0;
+
+   f5data = {}
+   sp_options["Error"] = defaultdict(list)
+   sp_options["get_albacore_version"] = defaultdict(int)
+   # for each fast5 file
+   for f5f in f5files:
+      try:
+         with h5py.File(f5f, 'r') as mf5:
+            sp_param = {}
+            sp_param['mfile_path'] = f5f
+            sp_param['f5reader'] = mf5
+            sp_param['f5status'] = "";
+
             getFast5Info(moptions, sp_param)
             if 'get_albacore_version' in sp_param:
                sp_options["get_albacore_version"][str(sp_param['get_albacore_version'])] += 1

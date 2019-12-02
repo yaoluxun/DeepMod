@@ -86,6 +86,7 @@ def mCommonParam(margs):
    moptions['SignalGroup'] = margs.SignalGroup;
 
    moptions['move'] = margs.move
+   moptions['multi'] = margs.multi
 
    return [moptions, ErrorMessage]
 
@@ -312,6 +313,7 @@ com_group_for_comparison.add_argument("--windowsize", type=int, default=21, help
 com_group_for_comparison.add_argument("--alignStr", type=str, default='minimap2', choices=["bwa","minimap2"], help="Alignment tools (bwa or minimap2 is supported). Default: minimap2")
 com_group_for_comparison.add_argument("--SignalGroup", type=str, default='simple', choices=["simple","rundif"], help="How to associate signals to each called bases. Default: simple")
 com_group_for_comparison.add_argument("--move", default=False, action="store_true", help="Whether the basecalled data use move tables instead of event tables. Default: False")
+com_group_for_comparison.add_argument("--multi", default=False, action="store_true", help="Whether the fast5 file is multi-fast5. If the argument is not specified, the program will automatically detect the format. Default: False")
 
 # add detection options
 parser_detect = subparsers.add_parser('detect', parents=[parent_parser], help="Detect modifications at a genomic scale", description="Detect modifications by integrating all long reads for a genome", epilog="For example, \n \

@@ -27,7 +27,8 @@ from . import myDetect
 #
 def mGetFeature1(moptions, sp_options, f5files):
    # associate signals to events
-   f5data = myDetect.get_Event_Signals(moptions, sp_options, f5files)
+   #f5data = myDetect.get_Event_Signals(moptions, sp_options, f5files)
+   f5data = myDetect.is_multi_fast5(moptions, sp_options, f5files)
 
    # save all sequences information
    if moptions['outLevel']<=myCom.OUTPUT_DEBUG: start_time = time.time();
