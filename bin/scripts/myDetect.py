@@ -467,12 +467,12 @@ def get_Event_Signals_multi(moptions, sp_options, f5files):
                    if runnum%500==0:
                       end_time = time.time();
                       print ("%d consuming time %d" % (runnum, end_time-start_time))
-          except:
-             sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
-             print("Cannot open fast5 or other errors: {}".format(f5f))
-       if moptions['outLevel']<=myCom.OUTPUT_DEBUG:
-          end_time = time.time();
-          print ("All consuming time %d" % (end_time-start_time))
+      except:
+         sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
+         print("Cannot open fast5 or other errors: {}".format(f5f))
+   if moptions['outLevel']<=myCom.OUTPUT_DEBUG:
+      end_time = time.time();
+      print ("All consuming time %d" % (end_time-start_time))
 
    return f5data;
 
