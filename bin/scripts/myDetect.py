@@ -403,28 +403,28 @@ def is_multi_fast5(moptions, sp_options, f5files):
    """
 
 
-    if moptions['multi']:
-        try:
-            return get_Event_Signals_multi(moptions, sp_options, f5files)
-        except:
-            pass
-        try:
-            moptions['multi'] = False
-            return get_Event_Signals(moptions, sp_options, f5files)
-        except:
-            sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
+   if moptions['multi']:
+      try:
+        return get_Event_Signals_multi(moptions, sp_options, f5files)
+      except:
+         pass
+      try:
+         moptions['multi'] = False
+         return get_Event_Signals(moptions, sp_options, f5files)
+      except:
+         sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
 
-    else: #single-fast5 format is specified
-        try:
-            return get_Event_Signals(moptions, sp_options, f5files)
-        except:
-            pass
+   else: #single-fast5 format is specified
+      try:
+         return get_Event_Signals(moptions, sp_options, f5files)
+      except:
+         pass
 
-        try:
-            moptions['multi'] = True
-            return get_Event_Signals_multi(moptions, sp_options, f5files)
-        except:
-            sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
+      try:
+         moptions['multi'] = True
+         return get_Event_Signals_multi(moptions, sp_options, f5files)
+      except:
+         sp_options["Error"]["Cannot open fast5 or other errors"].append(f5f)
 
 
 #
